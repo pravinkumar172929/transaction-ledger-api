@@ -3,14 +3,17 @@ const { AppError } = require("../utils/errors");
 
 const hasMaxTwoDecimals = (v) => Math.abs(Math.round(v * 100) - v * 100) < 1e-9;
 
+const amountSchema = z
+  .number()
+  .positive("Amount must be greater than 0")
+  .max(1000000000000, "Amount is too large")
+  .refine(hasMaxTwoDecimals, "Amount can have at most 2 decimal places");
+
 const createTransactionSchema = z
   .object({
     type: z.enum(["credit", "debit"]),
-    amount: z
-      .number()
-      .positive("Amount must be greater than 0")
-      .max(1000000000000, "Amount is too large")
-      .refine(hasMaxTwoDecimals, "Amount can have at most 2 decimal places"),
+    amount: amountSchema,
+
     description: z
       .string()
       .trim()
@@ -51,4 +54,4 @@ function parseListQuery(query) {
   return result.data;
 }
 
-module.exports = { createTransactionSchema, parseListQuery };
+module.exports = { createTransactionSchema, parseListQuery, amountSchema };
