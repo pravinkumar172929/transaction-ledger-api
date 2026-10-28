@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: ledger-db
+    environment:
+      POSTGRES_USER: ledger
+      POSTGRES_PASSWORD: ledger
+      POSTGRES_DB: ledger
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./src/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ledger-data:/var/lib/postgresql/data
+
+volumes:
+  ledger-data:
