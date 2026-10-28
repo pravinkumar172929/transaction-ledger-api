@@ -1,5 +1,6 @@
 const pool = require("../db/pool");
 const { AppError } = require("../utils/errors");
+const { getAccountById } = require("./account.service");
 
 const TXN_COLUMNS =
   "id, account_id, type, amount, description, reference_id, created_at";
@@ -91,4 +92,45 @@ async function addTransaction(
   }
 }
 
-module.exports = { addTransaction };
+async function listTransactions(accountId, { type, page, limit }) {
+  // 404 if the account doesn't exist
+  await getAccountById(accountId);
+
+  const params = [accountId];
+  let where = "WHERE account_id = $1";
+  if (type) {
+    params.push(type);
+    where += ` AND type = $${params.length}`;
+  }
+
+  const countRes = await pool.query(
+    `SELECT COUNT(*)::int AS total FROM transactions ${where}`,
+    params
+  );
+  const total = countRes.rows[0].total;
+
+  const offset = (page - 1) * limit;
+  const dataRes = await pool.query(
+    `SELECT ${TXN_COLUMNS} FROM transactions
+     ${where}
+     ORDER BY created_at DESC, id DESC
+     LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    [...params, limit, offset]
+  );
+
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    data: dataRes.rows,
+    pagination: {
+      page,
+      limit,
+      total_records: total,
+      total_pages: totalPages,
+      has_next: page < totalPages,
+      has_prev: page > 1,
+    },
+  };
+}
+
+module.exports = { addTransaction, listTransactions };

@@ -5,6 +5,7 @@ const transactionController = require("../controllers/transaction.controller");
 const router = express.Router();
 
 router.post("/", accountController.createAccount);
+router.get("/:id/transactions", transactionController.listTransactions);
 router.get("/:id", accountController.getAccount);
 router.get("/:id/balance", accountController.getBalance);
 

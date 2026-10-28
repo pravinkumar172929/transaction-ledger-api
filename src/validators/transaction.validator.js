@@ -1,4 +1,5 @@
 const { z } = require("zod");
+const { AppError } = require("../utils/errors");
 
 const hasMaxTwoDecimals = (v) => Math.abs(Math.round(v * 100) - v * 100) < 1e-9;
 
@@ -19,4 +20,35 @@ const createTransactionSchema = z
   })
   .strict();
 
-module.exports = { createTransactionSchema };
+const listTransactionsQuerySchema = z.object({
+  type: z.enum(["credit", "debit"]).optional(),
+  page: z.coerce
+    .number()
+    .int("page must be an integer")
+    .min(1, "page must be at least 1")
+    .default(1),
+  limit: z.coerce
+    .number()
+    .int("limit must be an integer")
+    .min(1, "limit must be at least 1")
+    .max(100, "limit cannot exceed 100")
+    .default(10),
+});
+
+function parseListQuery(query) {
+  const result = listTransactionsQuerySchema.safeParse(query ?? {});
+  if (!result.success) {
+    throw new AppError(
+      400,
+      "INVALID_QUERY_PARAMS",
+      "Invalid query parameters",
+      result.error.issues.map((i) => ({
+        field: i.path.join("."),
+        message: i.message,
+      }))
+    );
+  }
+  return result.data;
+}
+
+module.exports = { createTransactionSchema, parseListQuery };
